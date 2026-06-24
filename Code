@@ -1,0 +1,87 @@
+/*
+  BattleBot Combat Robot
+  Controller: Arduino Uno
+
+  Features:
+  - RC-controlled differential drive
+  - Roller weapon control
+*/
+
+#define THROTTLE_PIN 2
+#define STEERING_PIN 3
+#define WEAPON_PIN 4
+
+// Motor Driver Pins
+#define LEFT_MOTOR_PWM 5
+#define LEFT_MOTOR_DIR 6
+
+#define RIGHT_MOTOR_PWM 9
+#define RIGHT_MOTOR_DIR 10
+
+// Weapon Motor
+#define WEAPON_MOTOR 11
+
+int throttleValue;
+int steeringValue;
+int weaponValue;
+
+void setup() {
+
+  pinMode(THROTTLE_PIN, INPUT);
+  pinMode(STEERING_PIN, INPUT);
+  pinMode(WEAPON_PIN, INPUT);
+
+  pinMode(LEFT_MOTOR_PWM, OUTPUT);
+  pinMode(LEFT_MOTOR_DIR, OUTPUT);
+
+  pinMode(RIGHT_MOTOR_PWM, OUTPUT);
+  pinMode(RIGHT_MOTOR_DIR, OUTPUT);
+
+  pinMode(WEAPON_MOTOR, OUTPUT);
+
+  Serial.begin(9600);
+}
+
+void loop() {
+
+  // Read RC receiver PWM signals
+  throttleValue = pulseIn(THROTTLE_PIN, HIGH, 25000);
+  steeringValue = pulseIn(STEERING_PIN, HIGH, 25000);
+  weaponValue   = pulseIn(WEAPON_PIN, HIGH, 25000);
+
+  // Convert RC pulse width (1000–2000 us) to motor speed
+  int throttle = map(throttleValue, 1000, 2000, -255, 255);
+  int steering = map(steeringValue, 1000, 2000, -255, 255);
+
+  // Differential drive mixing
+  int leftSpeed  = throttle + steering;
+  int rightSpeed = throttle - steering;
+
+  leftSpeed = constrain(leftSpeed, -255, 255);
+  rightSpeed = constrain(rightSpeed, -255, 255);
+
+  driveMotor(LEFT_MOTOR_PWM, LEFT_MOTOR_DIR, leftSpeed);
+  driveMotor(RIGHT_MOTOR_PWM, RIGHT_MOTOR_DIR, rightSpeed);
+
+  // Roller weapon ON/OFF
+  if (weaponValue > 1500) {
+    analogWrite(WEAPON_MOTOR, 255);
+  }
+  else {
+    analogWrite(WEAPON_MOTOR, 0);
+  }
+
+  delay(20);
+}
+
+void driveMotor(int pwmPin, int dirPin, int speedVal) {
+
+  if (speedVal >= 0) {
+    digitalWrite(dirPin, HIGH);
+    analogWrite(pwmPin, speedVal);
+  }
+  else {
+    digitalWrite(dirPin, LOW);
+    analogWrite(pwmPin, abs(speedVal));
+  }
+}
